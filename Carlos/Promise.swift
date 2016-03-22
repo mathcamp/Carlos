@@ -13,9 +13,9 @@ public class Promise<T> {
   private let cancelLock: ReadWriteLock = PThreadReadWriteLock()
   
   /// The Future associated to this Promise
-  public lazy var future: Future<T> = {
+  public var future: Future<T> {
     return Future(promise: self)
-  }()
+  }
   
   /**
   Creates a new Promise
