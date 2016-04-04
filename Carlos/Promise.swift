@@ -8,13 +8,17 @@ public class Promise<T> {
   private var error: ErrorType?
   private var value: T?
   private var canceled = false
-  private let successLock: ReadWriteLock = PThreadReadWriteLock()
-  private let failureLock: ReadWriteLock = PThreadReadWriteLock()
-  private let cancelLock: ReadWriteLock = PThreadReadWriteLock()
-  
+
   /// The Future associated to this Promise
+  private weak var _future: Future<T>?
   public var future: Future<T> {
-    return Future(promise: self)
+    if let _future = _future {
+      return _future
+    }
+
+    let newFuture = Future(promise: self)
+    _future = newFuture
+    return newFuture
   }
   
   /**
@@ -78,17 +82,13 @@ public class Promise<T> {
   }
   
   private func clearListeners() {
-    successLock.withWriteLock {
-      successListeners.removeAll()
-    }
-    
-    failureLock.withWriteLock {
-      failureListeners.removeAll()
-    }
-    
-    cancelLock.withWriteLock {
-      cancelListeners.removeAll()
-    }
+    assert(NSThread.isMainThread())
+
+    successListeners.removeAll()
+
+    failureListeners.removeAll()
+
+    cancelListeners.removeAll()
   }
   
   /**
@@ -102,13 +102,12 @@ public class Promise<T> {
     guard self.error == nil else { return }
     guard self.value == nil else { return }
     guard self.canceled == false else { return }
-    
+    assert(NSThread.isMainThread())
+
     self.value = value
     
-    successLock.withReadLock {
-      successListeners.forEach { listener in
-        listener(value)
-      }
+    successListeners.forEach { listener in
+      listener(value)
     }
     
     clearListeners()
@@ -125,15 +124,14 @@ public class Promise<T> {
     guard self.error == nil else { return }
     guard self.value == nil else { return }
     guard self.canceled == false else { return }
-    
+    assert(NSThread.isMainThread())
+
     self.error = error
     
-    failureLock.withReadLock {
-      failureListeners.forEach { listener in
-        listener(error)
-      }
+    failureListeners.forEach { listener in
+      listener(error)
     }
-    
+
     clearListeners()
   }
   
@@ -146,15 +144,14 @@ public class Promise<T> {
     guard self.error == nil else { return }
     guard self.value == nil else { return }
     guard self.canceled == false else { return }
-    
+    assert(NSThread.isMainThread())
+
     canceled = true
     
-    cancelLock.withReadLock {
-      cancelListeners.forEach { listener in
-        listener()
-      }
+    cancelListeners.forEach { listener in
+      listener()
     }
-    
+
     clearListeners()
   }
   
@@ -166,12 +163,12 @@ public class Promise<T> {
   - returns: The updated Promise
   */
   public func onCancel(callback: Void -> Void) -> Promise<T> {
+    assert(NSThread.isMainThread())
+
     if canceled {
       callback()
     } else {
-      cancelLock.withWriteLock {
-        cancelListeners.append(callback)
-      }
+      cancelListeners.append(callback)
     }
     
     return self
@@ -185,12 +182,12 @@ public class Promise<T> {
   - returns: The updated Promise
   */
   public func onSuccess(callback: (T) -> Void) -> Promise<T> {
+    assert(NSThread.isMainThread())
+
     if let value = value {
       callback(value)
     } else {
-      successLock.withWriteLock {
-        successListeners.append(callback)
-      }
+      successListeners.append(callback)
     }
     
     return self
@@ -204,12 +201,12 @@ public class Promise<T> {
   - returns: The updated Promise
   */
   public func onFailure(callback: (ErrorType) -> Void) -> Promise<T> {
+    assert(NSThread.isMainThread())
+
     if let error = error {
       callback(error)
     } else {
-      failureLock.withWriteLock {
-        failureListeners.append(callback)
-      }
+      failureListeners.append(callback)
     }
     
     return self
