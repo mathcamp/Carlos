@@ -44,7 +44,6 @@ public final class PoolCache<C: CacheLevel where C.KeyType: Hashable>: CacheLeve
   public typealias OutputType = C.OutputType
   
   private let internalCache: C
-  private let lock: ReadWriteLock = PThreadReadWriteLock()
   private var requestsPool: [C.KeyType: Future<C.OutputType>] = [:]
   
   /**
@@ -65,24 +64,22 @@ public final class PoolCache<C: CacheLevel where C.KeyType: Hashable>: CacheLeve
   */
   public func get(key: KeyType) -> Future<OutputType> {
     let request: Future<OutputType>
-    
-    if let pooledRequest = lock.withReadLock ({ self.requestsPool[key] }) {
+    assert(NSThread.isMainThread())
+    if let pooledRequest = self.requestsPool[key] {
       Logger.log("Using pooled request \(pooledRequest) for key \(key)")
       request = pooledRequest
     } else {
       request = internalCache.get(key)
       
-      lock.withWriteLock {
-        self.requestsPool[key] = request
-      }
-      
+      self.requestsPool[key] = request
+
       Logger.log("Creating a new request \(request) for key \(key)")
       
       request
         .onCompletion { _ in
-          self.lock.withWriteLock {
-            self.requestsPool[key] = nil
-          }
+          assert(NSThread.isMainThread())
+
+          self.requestsPool[key] = nil
         }
     }
     
