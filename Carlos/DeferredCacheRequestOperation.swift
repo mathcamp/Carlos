@@ -30,25 +30,21 @@ public class DeferredResultOperation<C: CacheLevel>: GenericOperation {
   
   public override func genericStart() {
     state = .Executing
-    
-    cache.get(key)
-      .onSuccess { result in
-        GCD.main {
+
+    GCD.main{
+      self.cache.get(self.key)
+        .onSuccess { result in
           self.decoy.succeed(result)
+          self.state = .Finished
         }
-        self.state = .Finished
-      }
-      .onFailure { error in
-        GCD.main {
+        .onFailure { error in
           self.decoy.fail(error)
+          self.state = .Finished
         }
-        self.state = .Finished
-      }
-      .onCancel {
-        GCD.main {
+        .onCancel {
           self.decoy.cancel()
+          self.state = .Finished
         }
-        self.state = .Finished
-      }
     }
+  }
 }
