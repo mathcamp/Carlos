@@ -82,7 +82,7 @@ public class Promise<T> {
   }
   
   private func clearListeners() {
-    assert(NSThread.isMainThread())
+    precondition(NSThread.isMainThread())
 
     successListeners.removeAll()
 
@@ -102,7 +102,7 @@ public class Promise<T> {
     guard self.error == nil else { return }
     guard self.value == nil else { return }
     guard self.canceled == false else { return }
-    assert(NSThread.isMainThread())
+    precondition(NSThread.isMainThread())
 
     self.value = value
     
@@ -124,7 +124,7 @@ public class Promise<T> {
     guard self.error == nil else { return }
     guard self.value == nil else { return }
     guard self.canceled == false else { return }
-    assert(NSThread.isMainThread())
+    precondition(NSThread.isMainThread())
 
     self.error = error
     
@@ -144,7 +144,7 @@ public class Promise<T> {
     guard self.error == nil else { return }
     guard self.value == nil else { return }
     guard self.canceled == false else { return }
-    assert(NSThread.isMainThread())
+    precondition(NSThread.isMainThread())
 
     canceled = true
     
@@ -163,7 +163,7 @@ public class Promise<T> {
   - returns: The updated Promise
   */
   public func onCancel(callback: Void -> Void) -> Promise<T> {
-    assert(NSThread.isMainThread())
+    precondition(NSThread.isMainThread())
 
     if canceled {
       callback()
@@ -182,7 +182,7 @@ public class Promise<T> {
   - returns: The updated Promise
   */
   public func onSuccess(callback: (T) -> Void) -> Promise<T> {
-    assert(NSThread.isMainThread())
+    precondition(NSThread.isMainThread())
 
     if let value = value {
       callback(value)
@@ -201,7 +201,7 @@ public class Promise<T> {
   - returns: The updated Promise
   */
   public func onFailure(callback: (ErrorType) -> Void) -> Promise<T> {
-    assert(NSThread.isMainThread())
+    precondition(NSThread.isMainThread())
 
     if let error = error {
       callback(error)

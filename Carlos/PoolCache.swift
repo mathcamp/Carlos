@@ -64,7 +64,7 @@ public final class PoolCache<C: CacheLevel where C.KeyType: Hashable>: CacheLeve
   */
   public func get(key: KeyType) -> Future<OutputType> {
     let request: Future<OutputType>
-    assert(NSThread.isMainThread())
+    precondition(NSThread.isMainThread())
     if let pooledRequest = self.requestsPool[key] {
       Logger.log("Using pooled request \(pooledRequest) for key \(key)")
       request = pooledRequest
@@ -77,7 +77,7 @@ public final class PoolCache<C: CacheLevel where C.KeyType: Hashable>: CacheLeve
       
       request
         .onCompletion { _ in
-          assert(NSThread.isMainThread())
+          precondition(NSThread.isMainThread())
 
           self.requestsPool[key] = nil
         }
